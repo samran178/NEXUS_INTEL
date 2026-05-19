@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Market Research & Competitor Analyst Agent API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: research
+    description: Market research operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /research:
+    get:
+      operationId: listResearch
+      tags: [research]
+      summary: List all research reports
+      responses:
+        "200":
+          description: List of research reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResearchReport"
+    post:
+      operationId: createResearch
+      tags: [research]
+      summary: Start a new market research job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchInput"
+      responses:
+        "201":
+          description: Research job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchReport"
+
+  /research/stats:
+    get:
+      operationId: getResearchStats
+      tags: [research]
+      summary: Get dashboard stats
+      responses:
+        "200":
+          description: Research statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchStats"
+
+  /research/{id}:
+    get:
+      operationId: getResearch
+      tags: [research]
+      summary: Get a research report by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Research report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchReport"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteResearch
+      tags: [research]
+      summary: Delete a research report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /research/{id}/status:
+    get:
+      operationId: getResearchStatus
+      tags: [research]
+      summary: Poll the live status of a running research job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Current job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchStatusUpdate"
+        "404":
+          description: Not found
+
+  /research/{id}/download:
+    get:
+      operationId: downloadReport
+      tags: [research]
+      summary: Download the markdown report as a text file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Markdown report file
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +158,117 @@ components:
       required:
         - status
 
+    ResearchInput:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 3
+          description: "The market research query, e.g. 'Analyze Tesla solar business' or 'Coffee shop market in Lahore'"
+
+    ResearchReport:
+      type: object
+      required: [id, query, status, createdAt]
+      properties:
+        id:
+          type: integer
+        query:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        currentAgent:
+          type: ["string", "null"]
+          description: Which agent is currently running
+        agentProgress:
+          type: ["string", "null"]
+          description: Short description of current progress
+        report:
+          type: ["string", "null"]
+          description: Full markdown report (populated when status=completed)
+        swotAnalysis:
+          $ref: "#/components/schemas/SwotAnalysis"
+        competitors:
+          type: ["array", "null"]
+          items:
+            $ref: "#/components/schemas/Competitor"
+        marketSize:
+          type: ["string", "null"]
+        keyTrends:
+          type: ["array", "null"]
+          items:
+            type: string
+        errorMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+
+    SwotAnalysis:
+      type: object
+      properties:
+        strengths:
+          type: array
+          items:
+            type: string
+        weaknesses:
+          type: array
+          items:
+            type: string
+        opportunities:
+          type: array
+          items:
+            type: string
+        threats:
+          type: array
+          items:
+            type: string
+
+    Competitor:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        marketShare:
+          type: ["string", "null"]
+        pricing:
+          type: ["string", "null"]
+        strengths:
+          type: ["string", "null"]
+
+    ResearchStatusUpdate:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        currentAgent:
+          type: ["string", "null"]
+        agentProgress:
+          type: ["string", "null"]
+        errorMessage:
+          type: ["string", "null"]
+
+    ResearchStats:
+      type: object
+      required: [total, completed, running, failed]
+      properties:
+        total:
+          type: integer
+        completed:
+          type: integer
+        running:
+          type: integer
+        failed:
+          type: integer
+        recentQueries:
+          type: array
+          items:
+            type: string

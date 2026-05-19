@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AI Market Research Agent"
+version = "1.0.0"
+id = "artifacts/market-research"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23630
+
+[services.development]
+run = "pnpm --filter @workspace/market-research run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/market-research", "run", "build" ]
+publicDir = "artifacts/market-research/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23630"
+BASE_PATH = "/"
